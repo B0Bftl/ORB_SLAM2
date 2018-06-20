@@ -70,6 +70,15 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         mapfile = (string)mapfilen;
     }
 
+    // set format for map
+    if (fsSettings["Map.format"] == "text")
+    {
+	    useBinMap = false;
+    }
+    else {
+	    useBinMap = true;
+    }
+
     //Load ORB Vocabulary
     cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
 
@@ -92,7 +101,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     //Create KeyFrame Database
     //Create the Map
-    if (!mapfile.empty() && LoadMap(mapfile))
+    if (!mapfile.empty() && LoadMap(mapfile, useBinMap))
     {
         bReuseMap = true;
     }
@@ -325,9 +334,26 @@ void System::Reset()
 
 void System::Shutdown()
 {
-    mpLocalMapper->RequestFinish();
+	cout << endl << "Shutting down... " <<  endl;
+
+	mpLocalMapper->RequestFinish();
     mpLoopCloser->RequestFinish();
-    if(mpViewer)
+
+	// Wait until all thread have effectively stopped
+	while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
+	{
+		std::this_thread::sleep_for(std::chrono::microseconds(5000));
+	}
+	
+	if (is_save_map)
+	{
+		cout << "saving Map... ";
+		SaveMap(mapfile, useBinMap);
+		cout << "saved!" << endl;
+	}
+
+
+	if(mpViewer)
     {
         mpViewer->RequestFinish();
         while(!mpViewer->isFinished())
@@ -336,15 +362,10 @@ void System::Shutdown()
         }
     }
 
-    // Wait until all thread have effectively stopped
-    while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
-    {
-        std::this_thread::sleep_for(std::chrono::microseconds(5000));
-    }
+
     if(mpViewer)
         pangolin::BindToContext("ORB-SLAM2: Map Viewer");
-    if (is_save_map)
-        SaveMap(mapfile);
+
 }
 
 void System::SaveTrajectoryTUM(const string &filename)
@@ -517,22 +538,44 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
     return mTrackedKeyPointsUn;
 }
 
-void System::SaveMap(const string &filename)
+void System::SaveMap(const string &filename, const bool useBinMap)
 {
-    std::ofstream out(filename, std::ios_base::binary);
-    if (!out)
+
+	std::ofstream* out;
+
+	if (useBinMap)
+	{
+        out = new std::ofstream(filename, std::ios_base::binary);
+	}
+	else
+	{
+		out =  new std::ofstream(filename, std::ios::trunc);
+	}
+
+    if (!(*out))
     {
         cerr << "Cannot Write to Mapfile: " << mapfile << std::endl;
         exit(-1);
     }
+
+	if (useBinMap)
+	{
+		boost::archive::binary_oarchive oa(*out, boost::archive::no_header);
+        oa << mpMap;
+        oa << mpKeyFrameDatabase;
+	}
+	else
+	{
+		boost::archive::text_oarchive oa(*out, boost::archive::no_header);
+        oa << mpMap;
+        oa << mpKeyFrameDatabase;
+	}
+
     cout << "Saving Mapfile: " << mapfile << std::flush;
-    boost::archive::binary_oarchive oa(out, boost::archive::no_header);
-    oa << mpMap;
-    oa << mpKeyFrameDatabase;
     cout << " ...done" << std::endl;
-    out.close();
+    (*out).close();
 }
-bool System::LoadMap(const string &filename)
+bool System::LoadMap(const string &filename, const bool useBinMap)
 {
     std::ifstream in(filename, std::ios_base::binary);
     if (!in)
@@ -541,9 +584,18 @@ bool System::LoadMap(const string &filename)
         return false;
     }
     cout << "Loading Mapfile: " << mapfile << std::flush;
-    boost::archive::binary_iarchive ia(in, boost::archive::no_header);
-    ia >> mpMap;
-    ia >> mpKeyFrameDatabase;
+
+    if (useBinMap)
+    {
+        boost::archive::binary_iarchive ia(in, boost::archive::no_header);
+        ia >> mpMap;
+        ia >> mpKeyFrameDatabase;
+    } else {
+        boost::archive::text_iarchive ia(in, boost::archive::no_header);
+        ia >> mpMap;
+        ia >> mpKeyFrameDatabase;
+    }
+
     mpKeyFrameDatabase->SetORBvocabulary(mpVocabulary);
     cout << " ...done" << std::endl;
     cout << "Map Reconstructing" << flush;

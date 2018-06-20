@@ -123,8 +123,8 @@ public:
 
 private:
     // Save/Load functions
-    void SaveMap(const string &filename);
-    bool LoadMap(const string &filename);
+    void SaveMap(const string &filename, const bool useBinMap);
+    bool LoadMap(const string &filename, const bool useBinMap);
 
 private:
 
@@ -142,7 +142,8 @@ private:
 
     string mapfile;
     bool is_save_map;
-
+    bool useBinMap;
+    
     // Tracker. It receives a frame and computes the associated camera pose.
     // It also decides when to insert a new keyframe, create some new MapPoints and
     // performs relocalization if tracking fails.
