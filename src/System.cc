@@ -360,6 +360,8 @@ void System::Shutdown()
         {
             std::this_thread::sleep_for(std::chrono::microseconds(5000));
         }
+	    delete mpViewer;
+	    mpViewer = static_cast<Viewer*>(NULL);
     }
 
 
