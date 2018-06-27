@@ -22,6 +22,7 @@
 
 #include "System.h"
 #include "Converter.h"
+#include "Optimizer.h"
 #include <thread>
 #include <pangolin/pangolin.h>
 #include <iomanip>
@@ -335,6 +336,8 @@ void System::Reset()
 void System::Shutdown()
 {
 	cout << endl << "Shutting down... " <<  endl;
+
+	Optimizer::printTime();
 
 	mpLocalMapper->RequestFinish();
     mpLoopCloser->RequestFinish();

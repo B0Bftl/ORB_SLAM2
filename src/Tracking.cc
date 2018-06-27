@@ -167,7 +167,9 @@ void Tracking::SetViewer(Viewer *pViewer)
 
 cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRectRight, const double &timestamp)
 {
-    mImGray = imRectLeft;
+	std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+
+	mImGray = imRectLeft;
     cv::Mat imGrayRight = imRectRight;
 
     if(mImGray.channels()==3)
@@ -201,7 +203,13 @@ cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRe
 
     Track();
 
-    return mCurrentFrame.mTcw.clone();
+	std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+
+	double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+
+	cout << "Tracked image in " << ttrack << "seconds";
+
+	return mCurrentFrame.mTcw.clone();
 }
 
 

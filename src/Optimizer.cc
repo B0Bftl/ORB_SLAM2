@@ -38,6 +38,9 @@ namespace ORB_SLAM2
 {
 
 
+    std::list<double> listTimes = {};
+    double totalTime = 0;
+
 void Optimizer::GlobalBundleAdjustemnt(Map* pMap, int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust)
 {
 	vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
@@ -452,6 +455,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
 
 void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap)
 {
+    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
     cout << "Local BA ... ";
     // Local KeyFrames: First Breath Search from Current Keyframe
@@ -778,11 +782,24 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         pMP->UpdateNormalAndDepth();
     }
 
-
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+    double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+    listTimes.push_back(ttrack);
+    totalTime += ttrack;
     cout << "Done " << endl;
 
 }
 
+void Optimizer::printTime() {
+    listTimes.sort();
+
+    std::list<double>::iterator it = listTimes.begin();
+    std::advance(it, listTimes.size()/2);
+
+    cout << "-------" << endl << endl;
+    cout << "median localBA time: " << *it << endl;
+    cout << "mean localBA time: " << totalTime/listTimes.size() << endl;
+}
 
 void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* pCurKF,
                                        const LoopClosing::KeyFrameAndPose &NonCorrectedSim3,

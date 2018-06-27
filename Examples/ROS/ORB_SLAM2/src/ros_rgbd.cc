@@ -46,6 +46,10 @@ public:
     ORB_SLAM2::System* mpSLAM;
 };
 
+std::list<double> listTimes = {};
+double totalTime = 0;
+
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "RGBD");
@@ -59,7 +63,7 @@ int main(int argc, char **argv)
     }    
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,true, true);
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,true, false);
 
     ImageGrabber igb(&SLAM);
 
@@ -73,8 +77,21 @@ int main(int argc, char **argv)
 
     ros::spin();
 
+	listTimes.sort();
+
+	std::list<double>::iterator it = listTimes.begin();
+	std::advance(it, listTimes.size()/2);
+
+	cout << "-------" << endl << endl;
+	cout << "median tracking time: " << *it << endl;
+	cout << "mean tracking time: " << totalTime/listTimes.size() << endl;
+
+
+
     // Stop all threads
     SLAM.Shutdown();
+
+
 
     // Save camera trajectory
     SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
@@ -84,9 +101,13 @@ int main(int argc, char **argv)
     return 0;
 }
 
+
 void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD)
 {
-    // Copy the ros image message to cv::Mat.
+	std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+
+
+	// Copy the ros image message to cv::Mat.
     cv_bridge::CvImageConstPtr cv_ptrRGB;
     try
     {
@@ -112,6 +133,12 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
     cv::resize(cv_ptrD->image, depthResized, (cv_ptrRGB->image).size(),0,0, cv::INTER_NEAREST);
 
     mpSLAM->TrackRGBD(cv_ptrRGB->image,depthResized,cv_ptrRGB->header.stamp.toSec());
+
+    std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+	double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+	listTimes.push_back(ttrack);
+	totalTime += ttrack;
+
 }
 
 
