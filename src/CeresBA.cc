@@ -130,12 +130,26 @@ namespace ORB_SLAM2 {
 				const cv::Mat kfRotation = pKeyFrame->GetRotation();
 
 				// We need the 2D Coordinates of our current MapPoint in the KeyFrame
+				// Since we use a RGB-D Camera as well, out observation actually consists of 3 Coordinates
 				const cv::KeyPoint &keyPointUn = pKeyFrame->mvKeysUn[itKeyFrame->second];
 				Eigen::Matrix<double,3,1> obs;
 				const float keyPoint_ur = pKeyFrame->mvuRight[itKeyFrame->second];
 				obs << keyPointUn.pt.x, keyPointUn.pt.y, keyPoint_ur;
 
-
+				/*
+				 * About the reprojectoin error:
+				 * With our Depth Information, we do not have an image Plane anymore, but a 3D frame.
+				 * So the reprojection Error is the euclidean distance between the measured Point and
+				 * its' 3D coordinates, given we have a valid depth measurement.
+				 * If this measurement is not given(because the point is too far away, or the sensor
+				 * did not identify the depth), we use the normal reprojection.
+				 *
+				 * So we actually do not need to reproject the error at all with valid depth measurement
+				 *
+				 * Just to mention: The correct calibration of the depth sensor seems to be extremely
+				 * important
+				 *
+				 */
 
 
 
