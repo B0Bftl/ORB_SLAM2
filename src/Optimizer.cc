@@ -30,6 +30,8 @@
 
 #include<Eigen/StdVector>
 
+#include "ceres/ceres.h"
+
 #include "Converter.h"
 
 #include<mutex>
@@ -787,6 +789,68 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     listTimes.push_back(ttrack);
     totalTime += ttrack;
     cout << "Done " << endl;
+
+}
+
+void Optimizer::LocalBundleAdjustmentCeres(ORB_SLAM2::KeyFrame *pKF, bool *pbStopFlag, ORB_SLAM2::Map *pMap) {
+
+	std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+
+	cout << "Local BA ... ";
+	// Local KeyFrames: First Breath Search from Current Keyframe
+	list<KeyFrame*> lLocalKeyFrames;
+
+	lLocalKeyFrames.push_back(pKF);
+	pKF->mnBALocalForKF = pKF->mnId;
+
+	const vector<KeyFrame*> vNeighKFs = pKF->GetVectorCovisibleKeyFrames();
+	for(int i=0, iend=vNeighKFs.size(); i<iend; i++)
+	{
+		KeyFrame* pKFi = vNeighKFs[i];
+		pKFi->mnBALocalForKF = pKF->mnId;
+		if(!pKFi->isBad())
+			lLocalKeyFrames.push_back(pKFi);
+	}
+
+	// Local MapPoints seen in Local KeyFrames
+	list<MapPoint*> lLocalMapPoints;
+	for(list<KeyFrame*>::iterator lit=lLocalKeyFrames.begin() , lend=lLocalKeyFrames.end(); lit!=lend; lit++)
+	{
+		vector<MapPoint*> vpMPs = (*lit)->GetMapPointMatches();
+		for(vector<MapPoint*>::iterator vit=vpMPs.begin(), vend=vpMPs.end(); vit!=vend; vit++)
+		{
+			MapPoint* pMP = *vit;
+			if(pMP)
+				if(!pMP->isBad())
+					if(pMP->mnBALocalForKF!=pKF->mnId)
+					{
+						lLocalMapPoints.push_back(pMP);
+						pMP->mnBALocalForKF=pKF->mnId;
+					}
+		}
+	}
+
+	// Fixed Keyframes. Keyframes that see Local MapPoints but that are not Local Keyframes
+	list<KeyFrame*> lFixedCameras;
+	for(list<MapPoint*>::iterator lit=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); lit!=lend; lit++)
+	{
+		map<KeyFrame*,size_t> observations = (*lit)->GetObservations();
+		for(map<KeyFrame*,size_t>::iterator mit=observations.begin(), mend=observations.end(); mit!=mend; mit++)
+		{
+			KeyFrame* pKFi = mit->first;
+
+			if(pKFi->mnBALocalForKF != pKF->mnId && pKFi->mnBAFixedForKF != pKF->mnId)
+			{
+				pKFi->mnBAFixedForKF=pKF->mnId;
+				if(!pKFi->isBad())
+					lFixedCameras.push_back(pKFi);
+			}
+		}
+	}
+	// Initialize Ceres Solver
+	CeresBA::localBundleAdjustmentCeres(lLocalMapPoints,
+	                                    lLocalKeyFrames,
+										lFixedCameras);
 
 }
 
