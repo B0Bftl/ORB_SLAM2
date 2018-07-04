@@ -19,7 +19,6 @@ namespace ORB_SLAM2 {
 		                                       list<KeyFrame*>& lLocalKeyFrames,
 		                                       list<KeyFrame*>& lFixedKeyFrames);
 
-
 	};
 
 }
