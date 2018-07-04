@@ -457,6 +457,10 @@ int Optimizer::PoseOptimization(Frame *pFrame)
 
 void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap)
 {
+
+	Optimizer::LocalBundleAdjustmentCeres(pKF, pbStopFlag, pMap);
+
+	/*
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
     cout << "Local BA ... ";
@@ -544,6 +548,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     for(list<KeyFrame*>::iterator lit=lFixedCameras.begin(), lend=lFixedCameras.end(); lit!=lend; lit++)
     {
         KeyFrame* pKFi = *lit;
+        std::cout << "Pose: " << pKFi->GetPose() << endl;
         g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
         vSE3->setEstimate(Converter::toSE3Quat(pKFi->GetPose()));
         vSE3->setId(pKFi->mnId);
@@ -586,7 +591,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         vPoint->setId(id);
         vPoint->setMarginalized(true);
         optimizer.addVertex(vPoint);
-
+itKeyFrames
         const map<KeyFrame*,size_t> observations = pMP->GetObservations();
 
         //Set edges
@@ -789,6 +794,8 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     listTimes.push_back(ttrack);
     totalTime += ttrack;
     cout << "Done " << endl;
+
+    */
 
 }
 

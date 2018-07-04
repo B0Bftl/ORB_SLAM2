@@ -22,6 +22,7 @@
 #include "Converter.h"
 #include "ORBmatcher.h"
 #include<mutex>
+#include <ceres/rotation.h>
 
 namespace ORB_SLAM2
 {
@@ -81,6 +82,35 @@ void KeyFrame::SetPose(const cv::Mat &Tcw_)
     Ow.copyTo(Twc.rowRange(0,3).col(3));
     cv::Mat center = (cv::Mat_<float>(4,1) << mHalfBaseline, 0 , 0, 1);
     Cw = Twc*center;
+
+    std::cout << "SetPose given Argument: " << Tcw_ << std::endl;
+	std::cout << "resulting Twc: " << Twc << std::endl;
+	std::cout << "resulting cameraPose: " << std::endl;
+
+	double TwcDoubleArray[9] = {};
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			TwcDoubleArray[i] = (double) Twc.at<float>(i,j);
+		}
+	}
+
+	double cameraRotation[6] = {};
+
+	ceres::RotationMatrixToAngleAxis<double>(TwcDoubleArray, cameraRotation);
+
+	for (int i = 0; i < 3; i++) {
+		cameraPose[i] = cameraRotation[i];
+		cameraPose[i+3] = Twc.at<float>(i,3);
+	}
+
+    //added
+	for (double dValue : cameraPose) {
+		//cameraPose[i] = Tcw.at<float>(i);
+		std::cout << dValue << std::endl;
+	}
+
 }
 
 cv::Mat KeyFrame::GetPose()

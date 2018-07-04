@@ -36,6 +36,11 @@ MapPoint::MapPoint(const cv::Mat &Pos, KeyFrame *pRefKF, Map* pMap):
     mpReplaced(static_cast<MapPoint*>(NULL)), mfMinDistance(0), mfMaxDistance(0), mpMap(pMap)
 {
     Pos.copyTo(mWorldPos);
+
+	for (int i = 0; i < 3; i++) {
+		pointPosition[i] = mWorldPos.at<float>(i);
+	}
+
     mNormalVector = cv::Mat::zeros(3,1,CV_32F);
 
     // MapPoints can be created from Tracking and Local Mapping. This mutex avoid conflicts with id.
@@ -75,6 +80,11 @@ void MapPoint::SetWorldPos(const cv::Mat &Pos)
     unique_lock<mutex> lock2(mGlobalMutex);
     unique_lock<mutex> lock(mMutexPos);
     Pos.copyTo(mWorldPos);
+
+	for (int i = 0; i < 3; i++) {
+		pointPosition[i] = mWorldPos.at<float>(i);
+	}
+
 }
 
 cv::Mat MapPoint::GetWorldPos()

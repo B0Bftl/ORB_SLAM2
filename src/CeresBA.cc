@@ -3,6 +3,8 @@
 #include "CeresBA.h"
 #include "gflags/gflags.h"
 
+#include "snavely_reprojection_error_stereo.h"
+
 namespace ORB_SLAM2 {
 
 
@@ -51,53 +53,6 @@ namespace ORB_SLAM2 {
 	DEFINE_bool(line_search, false, "Use a line search instead of trust region "
 	"algorithm.");
 
-
-
-	struct SnavelyReprojectionError {
-		SnavelyReprojectionError(double observed_x, double observed_y)
-				: observed_x(observed_x), observed_y(observed_y) {}
-		template <typename T>
-		bool operator()(const T* const camera,
-		                const T* const point,
-		                T* residuals) const {
-			// camera[0,1,2] are the angle-axis rotation.
-			T p[3];
-			ceres::AngleAxisRotatePoint(camera, point, p);
-			// camera[3,4,5] are the translation.
-			p[0] += camera[3];
-			p[1] += camera[4];
-			p[2] += camera[5];
-			// Compute the center of distortion. The sign change comes from
-			// the camera model that Noah Snavely's Bundler assumes, whereby
-			// the camera coordinate system has a negative z axis.
-			T xp = - p[0] / p[2];
-			T yp = - p[1] / p[2];
-			// Apply second and fourth order radial distortion.
-			const T& l1 = camera[7];
-			const T& l2 = camera[8];
-			T r2 = xp*xp + yp*yp;
-			T distortion = T(1.0) + r2  * (l1 + l2  * r2);
-			// Compute final projected point position.
-			const T& focal = camera[6];
-			T predicted_x = focal * distortion * xp;
-			T predicted_y = focal * distortion * yp;
-			// The error is the difference between the predicted and observed position.
-			residuals[0] = predicted_x - T(observed_x);
-			residuals[1] = predicted_y - T(observed_y);
-			return true;
-		}
-		// Factory to hide the construction of the CostFunction object from
-		// the client code.
-		static ceres::CostFunction* Create(const double observed_x,
-		                                   const double observed_y) {
-			return (new ceres::AutoDiffCostFunction<SnavelyReprojectionError, 2, 9, 3>(
-					new SnavelyReprojectionError(observed_x, observed_y)));
-		}
-		double observed_x;
-		double observed_y;
-	};
-
-
 	void CeresBA::localBundleAdjustmentCeres(list<MapPoint *>& lLocalMapPoints,
 	                                         list<KeyFrame *>& lLocalKeyFrames,
 	                                         list<KeyFrame *>& lFixedKeyFrames) {
@@ -110,13 +65,15 @@ namespace ORB_SLAM2 {
 		{
 			// get current MapPoint
 			MapPoint* pMapPoint = *itMapPoints;
-			ceres::CostFunction* cost_function;
 			// we need the current 3D Position of our MapPoint
-			cv::Mat positionMapPoint =  pMapPoint->GetWorldPos();
+
+			if (pMapPoint->isBad())
+				continue;
+
+			cv::Mat mpPosition =  pMapPoint->GetWorldPos();
 
 			// fetch all KeyFrames Observing this MapPoint
 			const map<KeyFrame*,size_t> observations = pMapPoint->GetObservations();
-
 
 			for(map<KeyFrame*,size_t>::const_iterator itKeyFrame=observations.begin(), mend=observations.end(); itKeyFrame!=mend; itKeyFrame++)
 			{
@@ -125,16 +82,56 @@ namespace ORB_SLAM2 {
 				if(pKeyFrame->isBad())
 					continue;
 
+
+
 				// We need the Translation and Rotation of the KeyFrame
-				const cv::Mat kfTranslation = pKeyFrame->GetTranslation();
-				const cv::Mat kfRotation = pKeyFrame->GetRotation();
+				const cv::Mat kfPose = pKeyFrame->GetPose();
+
+				ceres::CostFunction* cost_function;
 
 				// We need the 2D Coordinates of our current MapPoint in the KeyFrame
 				// Since we use a RGB-D Camera as well, out observation actually consists of 3 Coordinates
 				const cv::KeyPoint &keyPointUn = pKeyFrame->mvKeysUn[itKeyFrame->second];
-				Eigen::Matrix<double,3,1> obs;
 				const float keyPoint_ur = pKeyFrame->mvuRight[itKeyFrame->second];
-				obs << keyPointUn.pt.x, keyPointUn.pt.y, keyPoint_ur;
+				double baseline = pKeyFrame->mb;
+
+				cost_function = ORB_SLAM2::SnavelyReprojectionErrorStereo::Create(keyPointUn.pt.x,
+						                                                          keyPointUn.pt.y,
+						                                                          keyPoint_ur,
+						                                                          baseline);
+
+				// use Huber's loss function.
+				ceres::LossFunction* loss_function = new ceres::HuberLoss(1.0);
+
+				//std::unique_ptr<double[]> cameraPose(new double[9]);
+				//std::unique_ptr<double[]> pointPosition(new double[3]);
+
+				//double* pointPosition = new double[3];
+				//double* pointPosition = new double[3];
+				/*
+				std::cout << "cv::Mat Pose: " << kfPose << std::endl;
+
+				std::cout << "cameraPose: "
+				    << pKeyFrame->cameraPose[0] << std::endl
+					<< pKeyFrame->cameraPose[1] << std::endl
+					<< pKeyFrame->cameraPose[2] << std::endl
+					<< pKeyFrame->cameraPose[3] << std::endl
+                    << pKeyFrame->cameraPose[4] << std::endl
+                    << pKeyFrame->cameraPose[5] << std::endl
+					<< pKeyFrame->cameraPose[6] << std::endl
+                    << pKeyFrame->cameraPose[7] << std::endl
+                    << pKeyFrame->cameraPose[8] << std::endl;
+
+				std::cout << "cv::Mat Point: " << mpPosition << std::endl;
+
+				std::cout << "mapPoint: "
+				          << pMapPoint->pointPosition[0] << std::endl
+				          << pMapPoint->pointPosition[1] << std::endl
+				          << pMapPoint->pointPosition[2] << std::endl;
+				*/
+
+				problem.AddResidualBlock(cost_function, loss_function, pKeyFrame->cameraPose, pMapPoint->pointPosition);
+
 
 				/*
 				 * About the reprojectoin error:
@@ -155,23 +152,58 @@ namespace ORB_SLAM2 {
 
 			}
 
+		}
 
-			cost_function = SnavelyReprojectionError::Create(pMapPoint->mTrackProjX, pMapPoint->mTrackProjY);
 
-			ceres::LossFunction* loss_function  = new ceres::HuberLoss(1.0);
+		ceres::Solver::Options options;
+		options.linear_solver_type = ceres::LinearSolverType::SPARSE_SCHUR;
+		options.max_num_iterations = 100;
+		options.minimizer_type = ceres::MinimizerType::LINE_SEARCH;
+		options.trust_region_strategy_type = ceres::TrustRegionStrategyType::DOGLEG;
+		options.num_threads = 1;
+		options.dense_linear_algebra_library_type = ceres::DenseLinearAlgebraLibraryType::EIGEN;
+		options.gradient_tolerance = 1e-16;
+		options.function_tolerance = 1e-16;
+		ceres::Solver::Summary summary;
+		ceres::Solve(options, &problem, &summary);
+		std::cout << summary.FullReport() << "\n";
+		std::cout << "done" << std::endl;
 
-			pMapPoint->GetObservations();
 
-			// Now need the KeyFrames, that see the current Map Point
-			problem.AddResidualBlock(cost_function, loss_function, )
+		for(list<MapPoint*>::iterator itMapPoints=lLocalMapPoints.begin(), lend=lLocalMapPoints.end(); itMapPoints!=lend; itMapPoints++)
+		{
+			MapPoint* pMapPoint = *itMapPoints;
+			std::cout << "mapPoint: "
+			          << pMapPoint->pointPosition[0] << std::endl
+			          << pMapPoint->pointPosition[1] << std::endl
+			          << pMapPoint->pointPosition[2] << std::endl;
+			cv::Mat newPos = cv::Mat(3, 1, CV_32FC1, &(pMapPoint->pointPosition));
+			pMapPoint->SetWorldPos(newPos);
+			pMapPoint->UpdateNormalAndDepth();
 
 		}
 
 
+		for(list<KeyFrame*>::iterator itKeyFrames=lLocalKeyFrames.begin(), lend=lLocalKeyFrames.end(); itKeyFrames!=lend; itKeyFrames++)
+		{
+			KeyFrame* pKeyFrame = *itKeyFrames;
+			std::cout << "Size: " << pKeyFrame->GetPose().size << std::endl;
+			std::cout << "cameraPose: "
+			          << pKeyFrame->cameraPose[0] << std::endl
+			          << pKeyFrame->cameraPose[1] << std::endl
+			          << pKeyFrame->cameraPose[2] << std::endl
+			          << pKeyFrame->cameraPose[3] << std::endl
+			          << pKeyFrame->cameraPose[4] << std::endl
+			          << pKeyFrame->cameraPose[5] << std::endl
+			          << pKeyFrame->cameraPose[6] << std::endl
+			          << pKeyFrame->cameraPose[7] << std::endl
+			          << pKeyFrame->cameraPose[8] << std::endl;
+
+			cv::Mat newPos = cv::Mat(9, 1, CV_32FC1, &(pKeyFrame->cameraPose));
+			pKeyFrame->SetPose(newPos);
+		}
+
 
 	}
 
-
-
 }
-
