@@ -60,6 +60,28 @@ namespace ORB_SLAM2 {
 			                const T* const point,
 			                T* residuals) const {
 
+				/*
+				 * Convention:  Camera[0,1,2]        angle-axis rotation
+				 *			    Camera[3,4,5]        camera translation
+				 *
+				 *              CameraCal[0,1,2,3]   focal lengths fx, fy and cx, cy
+				 *              CameraCal[4,5,6,7,8] Distortion Coefficients k1,k2,p1,p2,k3
+				 */
+
+				T fx = CamerCal[0];
+				T fy = CamerCal[1];
+				T cx = CamerCal[2];
+				T cy = CamerCal[3];
+
+				T pointPosition[3];
+				// camera[0,1,2] are the angle-axis rotation.
+				ceres::AngleAxisRotatePoint(camera, point, pointPosition);
+
+				// camera[3,4,5] are the translation.
+				pointPosition[0] += camera[3];
+				pointPosition[1] += camera[4];
+				pointPosition[2] += camera[5];
+
 				// camera is our current KeyFrame
 				// point is the MapPoint in our 3D coordinate System
 
@@ -71,6 +93,11 @@ namespace ORB_SLAM2 {
 				p[0] += camera[3];
 				p[1] += camera[4];
 				p[2] += camera[5];
+
+				const T reprojected_lx= - p[0] / p[2];
+				const T reprojected_ly = - p[1] / p[2];
+
+				const T reprojected_rx = - (p[0] - baseline)/ p[2];
 
 				// now we want to undistort
 
