@@ -62,7 +62,7 @@ int main(int argc, char **argv)
     }
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,true,true);
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,true, false);
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
@@ -133,8 +133,10 @@ int main(int argc, char **argv)
     cout << "mean tracking time: " << totaltime/nImages << endl;
 
     // Save camera trajectory
-    SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
-    SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");   
+    SLAM.SaveTrajectoryTUM("savedData/CameraTrajectory.txt");
+    SLAM.SaveKeyFrameTrajectoryTUM("savedData/KeyFrameTrajectory.txt");
+	SLAM.saveMapPointsToFile("savedData/MapPoints.txt");
+	SLAM.saveKeyFrameObservationsToFile("savedData/Observations.txt");
 
     return 0;
 }

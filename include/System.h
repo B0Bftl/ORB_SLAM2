@@ -115,7 +115,14 @@ public:
     // Call first Shutdown()
     // See format details at: http://www.cvlibs.net/datasets/kitti/eval_odometry.php
     void SaveTrajectoryKITTI(const string &filename);
-    // Information from most recent processed frame
+
+    // Save MapPoints to File
+    void saveMapPointsToFile(const string &filename);
+
+    // Save Observations from Keyframes to File
+    void saveKeyFrameObservationsToFile(const string &filename);
+
+        // Information from most recent processed frame
     // You can call this right after TrackMonocular (or stereo or RGBD)
     int GetTrackingState();
     std::vector<MapPoint*> GetTrackedMapPoints();

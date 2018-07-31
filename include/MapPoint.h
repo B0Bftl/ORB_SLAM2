@@ -71,6 +71,11 @@ public:
         return mnFound;
     }
 
+    static bool lId(MapPoint* pMP1, MapPoint* pMP2){
+        return pMP1->mnId<pMP2->mnId;
+    }
+
+
     void ComputeDistinctiveDescriptors();
 
     cv::Mat GetDescriptor();

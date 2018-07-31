@@ -339,6 +339,12 @@ void System::Shutdown()
 	mpLocalMapper->RequestFinish();
     mpLoopCloser->RequestFinish();
 
+    SaveTrajectoryTUM("CameraTrajectory.txt");
+    SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+    saveMapPointsToFile("MapPoints.txt");
+    saveKeyFrameObservationsToFile("Observations.txt");
+
+
 	// Wait until all thread have effectively stopped
 	while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
 	{
@@ -365,8 +371,8 @@ void System::Shutdown()
     }
 
 
-    if(mpViewer)
-        pangolin::BindToContext("ORB-SLAM2: Map Viewer");
+    //if(mpViewer)
+        //pangolin::BindToContext("ORB-SLAM2: Map Viewer");
 
 }
 
@@ -520,6 +526,72 @@ void System::SaveTrajectoryKITTI(const string &filename)
     }
     f.close();
     cout << endl << "trajectory saved!" << endl;
+}
+
+void System::saveMapPointsToFile(const string &filename) {
+
+    vector<MapPoint*> vecMapPoints = mpMap->GetAllMapPoints();
+    sort(vecMapPoints.begin(), vecMapPoints.end(), MapPoint::lId);
+
+
+    ofstream f;
+    f.open(filename.c_str());
+    f << fixed;
+
+    for (MapPoint* const& pMapPoint : vecMapPoints) {
+
+        cv::Mat position = pMapPoint->GetWorldPos();
+
+        f << pMapPoint->mnId << ","
+          << setprecision(7)
+          << position.at<float>(0) << ","
+          << position.at<float>(1) << ","
+          << position.at<float>(2) << endl;
+    }
+
+    f.close();
+    cout << endl << "MapPoints saved!" << endl;
+
+}
+
+
+void System::saveKeyFrameObservationsToFile(const string &filename) {
+
+    vector<KeyFrame*> vecKeyFrames = mpMap->GetAllKeyFrames();
+
+    sort(vecKeyFrames.begin(),vecKeyFrames.end(),KeyFrame::lId);
+
+    ofstream f;
+    f.open(filename.c_str());
+    f << fixed;
+
+    for(KeyFrame* const& pKeyFrame: vecKeyFrames) {
+
+        if (pKeyFrame->isBad())
+            continue;
+
+        set<MapPoint*> setMapPoints = pKeyFrame->GetMapPoints();
+
+        f << pKeyFrame->mnId << ":" << std::endl;
+
+        for (auto const& pMapPoint: setMapPoints) {
+
+            const cv::KeyPoint pKeyPoint =  pKeyFrame->mvKeysUn[pMapPoint->GetIndexInKeyFrame(pKeyFrame)];
+            const float kp_ur = pKeyFrame->mvuRight[pMapPoint->GetIndexInKeyFrame(pKeyFrame)];
+
+            f   << " " << pMapPoint->mnId << ","
+                << setprecision(7)
+                << pKeyPoint.pt.x << ","
+                << pKeyPoint.pt.y << ","
+                << kp_ur << std::endl;
+
+        }
+
+    }
+
+    f.close();
+    cout << endl << "Observations saved!" << endl;
+
 }
 
 int System::GetTrackingState()
