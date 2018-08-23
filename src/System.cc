@@ -339,12 +339,6 @@ void System::Shutdown()
 	mpLocalMapper->RequestFinish();
     mpLoopCloser->RequestFinish();
 
-    SaveTrajectoryTUM("CameraTrajectory.txt");
-    SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
-    saveMapPointsToFile("MapPoints.txt");
-    saveKeyFrameObservationsToFile("Observations.txt");
-
-
 	// Wait until all thread have effectively stopped
 	while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
 	{
@@ -464,7 +458,7 @@ void System::SaveKeyFrameTrajectoryTUM(const string &filename)
         cv::Mat R = pKF->GetRotation().t();
         vector<float> q = Converter::toQuaternion(R);
         cv::Mat t = pKF->GetCameraCenter();
-        f << setprecision(6) << pKF->mTimeStamp << setprecision(7) << " " << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)
+        f << pKF->mnId << " " << setprecision(6) << pKF->mTimeStamp << setprecision(7) << " " << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)
           << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
 
     }
@@ -528,6 +522,39 @@ void System::SaveTrajectoryKITTI(const string &filename)
     cout << endl << "trajectory saved!" << endl;
 }
 
+void System::saveCurrentMapOfKeyFrame(ofstream* f, KeyFrame* pKeyFrame) {
+
+	if (pKeyFrame->isBad())
+		return;
+
+	set<MapPoint*> setMapPoints = pKeyFrame->GetMapPoints();
+
+	if(!(f->is_open())) {
+		std::cout << std::endl << "FileStream not open, cannot write KeyFrame Data" << std::endl;
+	}
+
+
+	cv::Mat R = pKeyFrame->GetRotation().t();
+	vector<float> q = Converter::toQuaternion(R);
+	cv::Mat t = pKeyFrame->GetCameraCenter();
+	*f << pKeyFrame->mnId << ":" << setprecision(6) << pKeyFrame->mTimeStamp << setprecision(7) << " " << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)
+	  << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
+
+
+	for (auto const& pMapPoint: setMapPoints) {
+
+		cv::Mat position = pMapPoint->GetWorldPos();
+
+		*f << pMapPoint->mnId << ","
+		  << setprecision(7)
+		  << position.at<float>(0) << ","
+		  << position.at<float>(1) << ","
+		  << position.at<float>(2) << endl;
+	}
+
+
+	}
+
 void System::saveMapPointsToFile(const string &filename) {
 
     vector<MapPoint*> vecMapPoints = mpMap->GetAllMapPoints();
@@ -554,8 +581,36 @@ void System::saveMapPointsToFile(const string &filename) {
 
 }
 
+void System::saveKeyFrameObservationsToFile(ofstream* f, KeyFrame* pKeyFrame) {
 
-void System::saveKeyFrameObservationsToFile(const string &filename) {
+    if (pKeyFrame->isBad())
+        return;
+
+
+    set<MapPoint*> setMapPoints = pKeyFrame->GetMapPoints();
+
+    if(!(f->is_open())) {
+        std::cout << std::endl << "FileStream not open, cannot write KeyFrame Data" << std::endl;
+    }
+
+
+    *f << pKeyFrame->mnId << ":" << std::endl;
+
+    for (auto const& pMapPoint: setMapPoints) {
+
+        const cv::KeyPoint pKeyPoint =  pKeyFrame->mvKeysUn[pMapPoint->GetIndexInKeyFrame(pKeyFrame)];
+        const float kp_ur = pKeyFrame->mvuRight[pMapPoint->GetIndexInKeyFrame(pKeyFrame)];
+
+        *f  << " " << pMapPoint->mnId << ","
+            << setprecision(7)
+            << pKeyPoint.pt.x << ","
+            << pKeyPoint.pt.y << ","
+            << kp_ur << std::endl;
+
+    }
+}
+
+void System::saveAllKeyFrameObservations(const string &filename) {
 
     vector<KeyFrame*> vecKeyFrames = mpMap->GetAllKeyFrames();
 
@@ -566,27 +621,7 @@ void System::saveKeyFrameObservationsToFile(const string &filename) {
     f << fixed;
 
     for(KeyFrame* const& pKeyFrame: vecKeyFrames) {
-
-        if (pKeyFrame->isBad())
-            continue;
-
-        set<MapPoint*> setMapPoints = pKeyFrame->GetMapPoints();
-
-        f << pKeyFrame->mnId << ":" << std::endl;
-
-        for (auto const& pMapPoint: setMapPoints) {
-
-            const cv::KeyPoint pKeyPoint =  pKeyFrame->mvKeysUn[pMapPoint->GetIndexInKeyFrame(pKeyFrame)];
-            const float kp_ur = pKeyFrame->mvuRight[pMapPoint->GetIndexInKeyFrame(pKeyFrame)];
-
-            f   << " " << pMapPoint->mnId << ","
-                << setprecision(7)
-                << pKeyPoint.pt.x << ","
-                << pKeyPoint.pt.y << ","
-                << kp_ur << std::endl;
-
-        }
-
+            saveKeyFrameObservationsToFile(&f, pKeyFrame);
     }
 
     f.close();

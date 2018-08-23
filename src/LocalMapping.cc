@@ -48,8 +48,10 @@ void LocalMapping::Run()
 {
 
     mbFinished = false;
+    std::string filenameNewObservations = "savedData/NewKeyFrames.txt";
+	std::string filenameCurrentMap = "savedData/CurrenMapAtLocalBA.txt";
 
-    while(1)
+	while(1)
     {
         // Tracking will see that Local Mapping is busy
         SetAcceptKeyFrames(false);
@@ -76,7 +78,17 @@ void LocalMapping::Run()
 
             if(!CheckNewKeyFrames() && !stopRequested())
             {
-                // Local BA
+
+	            // save current status before local BA, to get measurements
+            	ofstream f;
+	            f.open(filenameNewObservations.c_str(), std::fstream::app);
+            	System::saveKeyFrameObservationsToFile(&f, mpCurrentKeyFrame);
+            	f.close();
+				f.open(filenameCurrentMap.c_str(), std::fstream::app);
+				System::saveCurrentMapOfKeyFrame(&f,mpCurrentKeyFrame);
+            	f.close();
+
+            	// Local BA
                 if(mpMap->KeyFramesInMap()>2)
                     Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap);
 

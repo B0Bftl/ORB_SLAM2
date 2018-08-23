@@ -120,7 +120,9 @@ public:
     void saveMapPointsToFile(const string &filename);
 
     // Save Observations from Keyframes to File
-    void saveKeyFrameObservationsToFile(const string &filename);
+    static void saveKeyFrameObservationsToFile(ofstream* f, KeyFrame* pKeyFrame);
+    static void saveCurrentMapOfKeyFrame(ofstream* f, KeyFrame* pKeyFrame);
+    void saveAllKeyFrameObservations(const string &filename);
 
         // Information from most recent processed frame
     // You can call this right after TrackMonocular (or stereo or RGBD)

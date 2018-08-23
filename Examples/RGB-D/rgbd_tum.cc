@@ -136,7 +136,7 @@ int main(int argc, char **argv)
     SLAM.SaveTrajectoryTUM("savedData/CameraTrajectory.txt");
     SLAM.SaveKeyFrameTrajectoryTUM("savedData/KeyFrameTrajectory.txt");
 	SLAM.saveMapPointsToFile("savedData/MapPoints.txt");
-	SLAM.saveKeyFrameObservationsToFile("savedData/Observations.txt");
+	SLAM.saveAllKeyFrameObservations("savedData/Observations.txt");
 
     return 0;
 }
