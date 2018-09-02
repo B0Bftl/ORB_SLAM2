@@ -48,8 +48,8 @@ void LocalMapping::Run()
 {
 
     mbFinished = false;
-    std::string filenameNewObservations = "savedData/NewKeyFrames.txt";
-	std::string filenameCurrentMap = "savedData/CurrenMapAtLocalBA.txt";
+    std::string filenameNewObservations = "savedData/KeyFramesObservations/";
+	std::string filenameKeyFrames = "savedData/KeyFramesMap/";
 
 	while(1)
     {
@@ -80,11 +80,18 @@ void LocalMapping::Run()
             {
 
 	            // save current status before local BA, to get measurements
+	            cout <<" here " << endl;
+
             	ofstream f;
-	            f.open(filenameNewObservations.c_str(), std::fstream::app);
+            	char pFileName [32];
+            	sprintf(pFileName, "%05lu", mpCurrentKeyFrame->mnId);
+				cout << filenameNewObservations << pFileName << ".txt" << endl;
+
+            	f.open(filenameNewObservations + pFileName + ".txt", std::fstream::app);
             	System::saveKeyFrameObservationsToFile(&f, mpCurrentKeyFrame);
             	f.close();
-				f.open(filenameCurrentMap.c_str(), std::fstream::app);
+
+				f.open(filenameKeyFrames + + pFileName + ".txt", std::fstream::app);
 				System::saveCurrentMapOfKeyFrame(&f,mpCurrentKeyFrame);
             	f.close();
 

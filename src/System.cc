@@ -537,8 +537,8 @@ void System::saveCurrentMapOfKeyFrame(ofstream* f, KeyFrame* pKeyFrame) {
 	cv::Mat R = pKeyFrame->GetRotation().t();
 	vector<float> q = Converter::toQuaternion(R);
 	cv::Mat t = pKeyFrame->GetCameraCenter();
-	*f << pKeyFrame->mnId << ":" << setprecision(6) << pKeyFrame->mTimeStamp << setprecision(7) << " " << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)
-	  << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
+	*f << pKeyFrame->mnId << "," << setprecision(6) << pKeyFrame->mTimeStamp << setprecision(7) << "," << t.at<float>(0) << "," << t.at<float>(1) << "," << t.at<float>(2)
+	  << "," << q[0] << "," << q[1] << "," << q[2] << "," << q[3] << endl;
 
 
 	for (auto const& pMapPoint: setMapPoints) {
