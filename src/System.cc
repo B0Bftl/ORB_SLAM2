@@ -435,7 +435,7 @@ void System::SaveKeyFrameTrajectoryTUM(const string &filename)
 {
     cout << endl << "Saving keyframe trajectory to " << filename << " ..." << endl;
 
-    vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+    std::vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
     sort(vpKFs.begin(),vpKFs.end(),KeyFrame::lId);
 
     // Transform all keyframes so that the first keyframe is at the origin.
@@ -458,8 +458,17 @@ void System::SaveKeyFrameTrajectoryTUM(const string &filename)
         cv::Mat R = pKF->GetRotation().t();
         vector<float> q = Converter::toQuaternion(R);
         cv::Mat t = pKF->GetCameraCenter();
-        f << pKF->mnId << " " << setprecision(6) << pKF->mTimeStamp << setprecision(7) << " " << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)
-          << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
+        //f << pKF->mnId << " " << setprecision(6) << pKF->mTimeStamp << setprecision(7) << " " << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)
+        //  << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
+
+		cv::Mat kfPose = pKF->GetPose();
+
+	    f << pKF->mnId << "," << setprecision(6) << pKF->mTimeStamp << "," << setprecision(7) <<
+	      kfPose.at<float>(0,0) << "," << kfPose.at<float>(0,1)  << "," << kfPose.at<float>(0,2) << ","  << kfPose.at<float>(0,3) << "," <<
+	      kfPose.at<float>(1,0) << "," << kfPose.at<float>(1,1)  << "," << kfPose.at<float>(1,2) << ","  << kfPose.at<float>(1,3) << "," <<
+	      kfPose.at<float>(2,0) << "," << kfPose.at<float>(2,1)  << "," << kfPose.at<float>(2,2) << ","  << kfPose.at<float>(2,3) << "," <<
+	      kfPose.at<float>(3,0) << "," << kfPose.at<float>(3,1)  << "," << kfPose.at<float>(3,2) << ","  << kfPose.at<float>(3,3) << "," <<
+	      endl;
 
     }
 
@@ -476,7 +485,7 @@ void System::SaveTrajectoryKITTI(const string &filename)
         return;
     }
 
-    vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
+    std::vector<KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
     sort(vpKFs.begin(),vpKFs.end(),KeyFrame::lId);
 
     // Transform all keyframes so that the first keyframe is at the origin.
@@ -533,12 +542,16 @@ void System::saveCurrentMapOfKeyFrame(ofstream* f, KeyFrame* pKeyFrame) {
 		std::cout << std::endl << "FileStream not open, cannot write KeyFrame Data" << std::endl;
 	}
 
+	*f << fixed;
 
-	cv::Mat R = pKeyFrame->GetRotation().t();
-	vector<float> q = Converter::toQuaternion(R);
-	cv::Mat t = pKeyFrame->GetCameraCenter();
-	*f << pKeyFrame->mnId << "," << setprecision(6) << pKeyFrame->mTimeStamp << setprecision(7) << "," << t.at<float>(0) << "," << t.at<float>(1) << "," << t.at<float>(2)
-	  << "," << q[0] << "," << q[1] << "," << q[2] << "," << q[3] << endl;
+	cv::Mat kfPose = pKeyFrame->GetPose();
+
+	*f << pKeyFrame->mnId << "," << setprecision(6) << pKeyFrame->mTimeStamp << "," << setprecision(7) <<
+	    kfPose.at<float>(0,0) << "," << kfPose.at<float>(0,1)  << "," << kfPose.at<float>(0,2) << ","  << kfPose.at<float>(0,3) << "," <<
+	    kfPose.at<float>(1,0) << "," << kfPose.at<float>(1,1)  << "," << kfPose.at<float>(1,2) << ","  << kfPose.at<float>(1,3) << "," <<
+	    kfPose.at<float>(2,0) << "," << kfPose.at<float>(2,1)  << "," << kfPose.at<float>(2,2) << ","  << kfPose.at<float>(2,3) << "," <<
+        kfPose.at<float>(3,0) << "," << kfPose.at<float>(3,1)  << "," << kfPose.at<float>(3,2) << ","  << kfPose.at<float>(3,3) << "," <<
+	   endl;
 
 
 	for (auto const& pMapPoint: setMapPoints) {
@@ -593,6 +606,7 @@ void System::saveKeyFrameObservationsToFile(ofstream* f, KeyFrame* pKeyFrame) {
         std::cout << std::endl << "FileStream not open, cannot write KeyFrame Data" << std::endl;
     }
 
+	*f << fixed;
 
     *f << pKeyFrame->mnId << ":" << std::endl;
 
@@ -612,19 +626,26 @@ void System::saveKeyFrameObservationsToFile(ofstream* f, KeyFrame* pKeyFrame) {
 
 void System::saveAllKeyFrameObservations(const string &filename) {
 
-    vector<KeyFrame*> vecKeyFrames = mpMap->GetAllKeyFrames();
+    std::vector<KeyFrame*> vecKeyFrames = mpMap->GetAllKeyFrames();
 
     sort(vecKeyFrames.begin(),vecKeyFrames.end(),KeyFrame::lId);
 
-    ofstream f;
-    f.open(filename.c_str());
-    f << fixed;
+	ofstream f;
+	for(KeyFrame* const& pKeyFrame: vecKeyFrames) {
 
-    for(KeyFrame* const& pKeyFrame: vecKeyFrames) {
-            saveKeyFrameObservationsToFile(&f, pKeyFrame);
+		if (pKeyFrame->isBad()) continue;
+
+	    char pFileName [32];
+	    sprintf(pFileName, "%05lu", pKeyFrame->mnId);
+
+	    f.open(filename + pFileName + ".txt", std::fstream::app);
+	    f << fixed;
+
+	    saveKeyFrameObservationsToFile(&f, pKeyFrame);
+
+	    f.close();
     }
 
-    f.close();
     cout << endl << "Observations saved!" << endl;
 
 }

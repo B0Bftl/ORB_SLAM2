@@ -76,24 +76,21 @@ void LocalMapping::Run()
 
             mbAbortBA = false;
 
+            // save current status before local BA, to get measurements
+            ofstream f;
+            char pFileName [32];
+            sprintf(pFileName, "%05lu", mpCurrentKeyFrame->mnId);
+
+            f.open(filenameNewObservations + pFileName + ".txt", std::fstream::app);
+            System::saveKeyFrameObservationsToFile(&f, mpCurrentKeyFrame);
+            f.close();
+
+            f.open(filenameKeyFrames + + pFileName + ".txt", std::fstream::app);
+            System::saveCurrentMapOfKeyFrame(&f,mpCurrentKeyFrame);
+            f.close();
+
             if(!CheckNewKeyFrames() && !stopRequested())
             {
-
-	            // save current status before local BA, to get measurements
-	            cout <<" here " << endl;
-
-            	ofstream f;
-            	char pFileName [32];
-            	sprintf(pFileName, "%05lu", mpCurrentKeyFrame->mnId);
-				cout << filenameNewObservations << pFileName << ".txt" << endl;
-
-            	f.open(filenameNewObservations + pFileName + ".txt", std::fstream::app);
-            	System::saveKeyFrameObservationsToFile(&f, mpCurrentKeyFrame);
-            	f.close();
-
-				f.open(filenameKeyFrames + + pFileName + ".txt", std::fstream::app);
-				System::saveCurrentMapOfKeyFrame(&f,mpCurrentKeyFrame);
-            	f.close();
 
             	// Local BA
                 if(mpMap->KeyFramesInMap()>2)
