@@ -95,7 +95,6 @@ void LocalMapping::InsertKeyFrame(KeyFrame *pKF)
         mlNewKeyFrames.push_back(pKF);
         mbAbortBA = true;
         mbNotifyNewKF = false;
-        cout << "LocalMapping::InsertKeyFrame()\n";
 
     }
     mCvNewKFs.notify_all();

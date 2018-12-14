@@ -178,6 +178,13 @@ protected:
     cv::Mat mDistCoef;
     float mbf;
 
+    int nInitFeatures;
+    int nInitFeaturesNeeded;
+    int nTrackFeaturesNeeded;
+    int nTrackInlierFeaturesNeeded;
+    int nTrackLocalMapInliers;
+    int minKFtoReset;
+
     //New KeyFrame rules (according to fps)
     int mMinFrames;
     int mMaxFrames;

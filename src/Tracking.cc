@@ -86,7 +86,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, Map *pMap, KeyFrameDatabas
     mMinFrames = 0;
     mMaxFrames = fps;
 
-    cout << endl << "Camera Parameters: " << endl;
+	cout << endl << "Camera Parameters: " << endl;
     cout << "- fx: " << fx << endl;
     cout << "- fy: " << fy << endl;
     cout << "- cx: " << cx << endl;
@@ -116,17 +116,31 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, Map *pMap, KeyFrameDatabas
     int fIniThFAST = fSettings["ORBextractor.iniThFAST"];
     int fMinThFAST = fSettings["ORBextractor.minThFAST"];
 
-    mpORBextractorLeft = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+
+
+	// Additional Parameters
+	nInitFeatures = fSettings["Initializer.nInitFeatures"];
+	nInitFeaturesNeeded = fSettings["Initializer.nFeaturesNeeded"];
+	nTrackFeaturesNeeded = fSettings["Tracker.nFeaturesNeeded"];
+    nTrackInlierFeaturesNeeded = fSettings["Tracker.nInlierFeaturesNeeded"];
+    nTrackLocalMapInliers = fSettings["Tracker.nLocalMapInliers"];
+    minKFtoReset = fSettings["Tracker.minKFtoReset"];
+
+
+	mpORBextractorLeft = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
 
     if(sensor==System::STEREO)
         mpORBextractorRight = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
 
     if(sensor==System::MONOCULAR)
-        mpIniORBextractor = new ORBextractor(2*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+        mpIniORBextractor = new ORBextractor(nInitFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
 
     cout << endl  << "ORB Extractor Parameters: " << endl;
     cout << "- Number of Features: " << nFeatures << endl;
-    cout << "- Scale Levels: " << nLevels << endl;
+	cout << "- Number of Initializing Features: " << nInitFeatures << endl;
+	cout << "- Number of Initializing Matching Features: " << nInitFeaturesNeeded << endl;
+	cout << "- Number of Tracking Matching Features: " << nTrackFeaturesNeeded << endl;
+	cout << "- Scale Levels: " << nLevels << endl;
     cout << "- Scale Factor: " << fScaleFactor << endl;
     cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
     cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
@@ -427,7 +441,7 @@ void Tracking::Track()
         // Reset if the camera get lost soon after initialization
         if(mState==LOST)
         {
-            if(mpMap->KeyFramesInMap()<=5)
+            if(mpMap->KeyFramesInMap()<= minKFtoReset)
             {
                 cout << "Track lost soon after initialisation, reseting..." << endl;
                 mpSystem->AskReset();
@@ -520,7 +534,7 @@ void Tracking::MonocularInitialization()
     if(!mpInitializer)
     {
         // Set Reference Frame
-        if(mCurrentFrame.mvKeys.size()>100)
+        if(mCurrentFrame.mvKeys.size()>nInitFeaturesNeeded)
         {
             mInitialFrame = Frame(mCurrentFrame);
             mLastFrame = Frame(mCurrentFrame);
@@ -541,7 +555,7 @@ void Tracking::MonocularInitialization()
     else
     {
         // Try to initialize
-        if((int)mCurrentFrame.mvKeys.size()<=100)
+        if((int)mCurrentFrame.mvKeys.size()<=nInitFeaturesNeeded)
         {
             delete mpInitializer;
             mpInitializer = static_cast<Initializer*>(NULL);
@@ -554,7 +568,7 @@ void Tracking::MonocularInitialization()
         int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);
 
         // Check if there are enough correspondences
-        if(nmatches<100)
+        if(nmatches<nInitFeaturesNeeded)
         {
             delete mpInitializer;
             mpInitializer = static_cast<Initializer*>(NULL);
@@ -718,8 +732,10 @@ bool Tracking::TrackReferenceKeyFrame()
 
     int nmatches = matcher.SearchByBoW(mpReferenceKF,mCurrentFrame,vpMapPointMatches);
 
-    if(nmatches<15)
-        return false;
+	cout << "matches found:" << nmatches;
+
+    if(nmatches<nTrackFeaturesNeeded)
+    	return false;
 
     mCurrentFrame.mvpMapPoints = vpMapPointMatches;
     mCurrentFrame.SetPose(mLastFrame.mTcw);
@@ -746,8 +762,9 @@ bool Tracking::TrackReferenceKeyFrame()
                 nmatchesMap++;
         }
     }
+	cout << " / " << nmatchesMap << endl;
 
-    return nmatchesMap>=10;
+	return nmatchesMap >= (nTrackInlierFeaturesNeeded);
 }
 
 void Tracking::UpdateLastFrame()
@@ -819,7 +836,6 @@ void Tracking::UpdateLastFrame()
 bool Tracking::TrackWithMotionModel()
 {
     ORBmatcher matcher(0.9,true);
-
     // Update last frame pose according to its reference keyframe
     // Create "visual odometry" points if in Localization Mode
     UpdateLastFrame();
@@ -836,14 +852,18 @@ bool Tracking::TrackWithMotionModel()
         th=7;
     int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
 
+    //cout << "matches: " << nmatches;
+
     // If few matches, uses a wider window search
-    if(nmatches<20)
+    if(nmatches<nTrackFeaturesNeeded)
     {
         fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
         nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR);
     }
 
-    if(nmatches<20)
+    //cout << " / " << nmatches;
+
+    if(nmatches<nTrackFeaturesNeeded)
         return false;
 
     // Optimize frame pose with all matches
@@ -869,14 +889,14 @@ bool Tracking::TrackWithMotionModel()
                 nmatchesMap++;
         }
     }    
-
+    //cout << " / " << nmatchesMap << endl;
     if(mbOnlyTracking)
     {
-        mbVO = nmatchesMap<10;
-        return nmatches>20;
+        mbVO = nmatchesMap<nTrackInlierFeaturesNeeded;
+        return nmatches>nTrackFeaturesNeeded;
     }
 
-    return nmatchesMap>=10;
+    return nmatchesMap>=nTrackInlierFeaturesNeeded;
 }
 
 bool Tracking::TrackLocalMap()
@@ -914,15 +934,14 @@ bool Tracking::TrackLocalMap()
         }
     }
 
+    //cout << "LocMap: " << mnMatchesInliers << endl;
+
     // Decide if the tracking was succesful
     // More restrictive if there was a relocalization recently
-    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<50)
+    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers < nTrackLocalMapInliers)
         return false;
 
-    if(mnMatchesInliers<30)
-        return false;
-    else
-        return true;
+	return mnMatchesInliers >= nTrackLocalMapInliers;
 }
 
 
