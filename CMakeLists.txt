@@ -108,6 +108,7 @@ install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/ORB_SLAM2
 
 # Build tools
 set(BUILD_TOOLS ON CACHE BOOL "Enable building tools")
+set(BUILD_TOOLS ON)
 if(BUILD_TOOLS)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/tools)
   add_executable(bin_vocabulary
@@ -115,8 +116,16 @@ if(BUILD_TOOLS)
   target_link_libraries(bin_vocabulary ${PROJECT_NAME})
 endif(BUILD_TOOLS)
 
+message(STATUS "Compile With map save/load function")
+find_library(BOOST_SERIALIZATION boost_serialization)
+if (NOT BOOST_SERIALIZATION)
+    message(FATAL_ERROR "Can't find libboost_serialization")
+endif()
+target_link_libraries(${PROJECT_NAME} ${BOOST_SERIALIZATION})
+
+
 # Build examples
-set(BUILD_EXAMPLES ON CACHE BOOL "Enable building examples")
+set(BUILD_EXAMPLES OFF CACHE BOOL "Enable building examples")
 set(BUILD_EXAMPLES ON)
 if(BUILD_EXAMPLES)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
@@ -150,3 +159,16 @@ if(BUILD_EXAMPLES)
     Examples/Monocular/mono_euroc.cc)
   target_link_libraries(mono_euroc ${PROJECT_NAME})
 endif(BUILD_EXAMPLES)
+
+if(USE_EXAMPLE_WEBCAM)
+    find_package(PkgConfig REQUIRED)
+    pkg_search_module(CURL REQUIRED libcurl)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+    add_executable(mono_uvc Examples/mono_uvc.cpp)
+    target_link_libraries(mono_uvc ${PROJECT_NAME})
+    add_executable(mono_android_ipcam Examples/mono_android_ipcam.cpp)
+    target_link_libraries(mono_android_ipcam ${PROJECT_NAME} ${CURL_LIBRARIES})
+    add_executable(mono_android_ipcam_ar Examples/mono_android_ipcam_ar.cpp Examples/AR/ViewerAR.cc)
+    target_include_directories(mono_android_ipcam_ar PUBLIC Examples/AR/)
+    target_link_libraries(mono_android_ipcam_ar ${PROJECT_NAME} ${CURL_LIBRARIES})
+endif()

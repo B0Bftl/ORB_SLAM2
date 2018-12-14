@@ -674,7 +674,7 @@ void LocalMapping::RequestReset()
             if(!mbResetRequested.load())
                 break;
         }
-        usleep(3000);
+        std::this_thread::sleep_for(std::chrono::microseconds(3000));
     }
     cout << "LocalMapping::RequestReset() DONE\n";
 
