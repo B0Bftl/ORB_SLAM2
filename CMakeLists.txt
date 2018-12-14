@@ -116,7 +116,8 @@ if(BUILD_TOOLS)
 endif(BUILD_TOOLS)
 
 # Build examples
-set(BUILD_EXAMPLES OFF CACHE BOOL "Enable building examples")
+set(BUILD_EXAMPLES ON CACHE BOOL "Enable building examples")
+set(BUILD_EXAMPLES ON)
 if(BUILD_EXAMPLES)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
 
