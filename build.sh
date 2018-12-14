@@ -1,22 +1,4 @@
-echo "Configuring and building Thirdparty/DBoW2 ..."
 BUILDTYPE=Release
-cd Thirdparty/DBoW2
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=$BUILDTYPE
-make -j
-
-cd ../../g2o
-
-echo "Configuring and building Thirdparty/g2o ..."
-
-mkdir build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=$BUILDTYPE
-make -j
-
-cd ../../../
-
 echo "Uncompress vocabulary ..."
 
 cd Vocabulary
