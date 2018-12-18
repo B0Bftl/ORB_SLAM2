@@ -99,7 +99,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     printf("Vocabulary loaded in %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);
 
     //Create KeyFrame Database
-    mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
+    mpKeyFrameDatabase = new KeyFrameDatabase(mpVocabulary);
 
     //Create KeyFrame Database
     //Create the Map
@@ -362,6 +362,7 @@ void System::Shutdown()
     }
     if(mpViewer)
         pangolin::BindToContext("ORB-SLAM2: Map Viewer");
+
     if (is_save_map)
         SaveMap(mapfile);
 }
