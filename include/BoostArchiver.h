@@ -23,8 +23,8 @@
 // base object needed by DBoW2::BowVector and DBoW2::FeatureVector
 #include <opencv2/core/core.hpp>
 
-#include "Thirdparty/DBoW2/DBoW2/BowVector.h"
-#include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
+#include "DBoW2/BowVector.h"
+#include "DBoW2/FeatureVector.h"
 
 BOOST_SERIALIZATION_SPLIT_FREE(::cv::Mat)
 namespace boost{

@@ -137,6 +137,10 @@ public:
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
 
+    // Save/Load functions
+    void SaveMap(const string &filename);
+    bool LoadMap(const string &filename);
+
   template<HookType H, typename T>
   void AddHook(T hook);
 
@@ -144,10 +148,7 @@ private:
     void CheckState();
     void UpdateTrackingState(const cv::Mat& Tcw);
 
-private:
-    // Save/Load functions
-    void SaveMap(const string &filename);
-    bool LoadMap(const string &filename);
+
 
 private:
 
