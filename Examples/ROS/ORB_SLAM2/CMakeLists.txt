@@ -40,13 +40,15 @@ endif()
 
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
+find_package(Boost COMPONENTS system)
 
 include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/../../../
 ${PROJECT_SOURCE_DIR}/../../../include
-        ${PROJECT_SOURCE_DIR}/../../../Thirdparty/DBoW2
-        ${Pangolin_INCLUDE_DIRS}
+${PROJECT_SOURCE_DIR}/../../../Thirdparty/DBoW2
+${Pangolin_INCLUDE_DIRS}
+        ${Boost_INCLUDE_DIRS}
 )
 
 find_package(G2O REQUIRED)
@@ -57,7 +59,7 @@ ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/../../../Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/../../../lib/libORB_SLAM2.so
-        -lboost_system
+        ${Boost_LIBRARIES}
         )
 
 # Node for monocular camera
