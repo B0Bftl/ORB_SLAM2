@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
-project(ORB_SLAM2_DBoW2)
+project(DBoW2)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 ")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 ")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native")
 
 set(HDRS_DBOW2
   DBoW2/BowVector.h
@@ -35,11 +35,6 @@ endif()
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
-add_library(${PROJECT_NAME} SHARED ${SRCS_DBOW2} ${SRCS_DUTILS})
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
+add_library(DBoW2 SHARED ${SRCS_DBOW2} ${SRCS_DUTILS})
+target_link_libraries(DBoW2 ${OpenCV_LIBS})
 
-install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib)
-install(FILES ${HDRS_DBOW2} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/ORB_SLAM2/DBoW2
-  )
-install(FILES ${HDRS_DUTILS} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/ORB_SLAM2/DUtils
-  )
