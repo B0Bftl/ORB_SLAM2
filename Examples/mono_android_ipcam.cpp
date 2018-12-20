@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
     }
     stat = IDLE;
     bool bUpdateMap = (int)atoi(argv[4]);
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true,bUpdateMap);
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR);
     CURL *curl;
     curl = curl_easy_init();
     curl_easy_setopt(curl, CURLOPT_URL, argv[3]);

@@ -319,4 +319,7 @@ void KeyFrameDatabase::serialize(Archive &ar, const unsigned int version)
 template void KeyFrameDatabase::serialize(boost::archive::binary_iarchive&, const unsigned int);
 template void KeyFrameDatabase::serialize(boost::archive::binary_oarchive&, const unsigned int);
 
+template void KeyFrameDatabase::serialize(boost::archive::text_iarchive&, const unsigned int);
+template void KeyFrameDatabase::serialize(boost::archive::text_oarchive&, const unsigned int);
+
 } //namespace ORB_SLAM

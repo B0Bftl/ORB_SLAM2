@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
 	return 1;
     }
     stat = IDLE;
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,false);
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR);
     // AR setup
     PrintARHint();
     viewerAR.SetSLAM(&SLAM);

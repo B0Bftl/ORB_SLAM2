@@ -180,11 +180,11 @@ protected:
     float mbf;
 
     int nInitFeatures;
-    int nInitFeaturesNeeded;
+    size_t nInitFeaturesNeeded;
     int nTrackFeaturesNeeded;
     int nTrackInlierFeaturesNeeded;
     int nTrackLocalMapInliers;
-    int minKFtoReset;
+    size_t minKFtoReset;
 
     //New KeyFrame rules (according to fps)
     int mMinFrames;
