@@ -449,8 +449,11 @@ int Optimizer::PoseOptimization(Frame *pFrame)
 }
 
 void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap)
-{    
-    // Local KeyFrames: First Breath Search from Current Keyframe
+{
+
+	std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+
+	// Local KeyFrames: First Breath Search from Current Keyframe
     list<KeyFrame*> lLocalKeyFrames;
 
     lLocalKeyFrames.push_back(pKF);
@@ -772,6 +775,13 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         pMP->SetWorldPos(Converter::toCvMat(vPoint->estimate()));
         pMP->UpdateNormalAndDepth();
     }
+
+    // end of local BA
+	std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+	double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+	std::cout << "LBA took " << ttrack << std::endl;
+
+
 }
 
 
