@@ -127,7 +127,8 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, Map *pMap, KeyFrameDatabas
     minKFtoReset = fSettings["Tracker.minKFtoReset"];
 
 
-	mpORBextractorLeft = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+
+    mpORBextractorLeft = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
 
     if(sensor==System::STEREO)
         mpORBextractorRight = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
@@ -144,6 +145,9 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, Map *pMap, KeyFrameDatabas
     cout << "- Scale Factor: " << fScaleFactor << endl;
     cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
     cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
+
+    cout << "optimization Algorithm: " << (string) fSettings["Optimizer.Algorithm"] << endl;
+    cout << "linearSolver: " << (string) fSettings["Optimizer.linearSolver"] << endl;
 
     if(sensor==System::STEREO || sensor==System::RGBD)
     {

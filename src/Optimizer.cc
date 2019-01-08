@@ -22,7 +22,15 @@
 
 #include <g2o/core/block_solver.h>
 #include <g2o/core/optimization_algorithm_levenberg.h>
+#include <g2o/core/optimization_algorithm_dogleg.h>
+#include <g2o/core/optimization_algorithm_gauss_newton.h>
+
 #include <g2o/solvers/eigen/linear_solver_eigen.h>
+#include <g2o/solvers/pcg/linear_solver_pcg.h>
+//#include <g2o/solvers/csparse/linear_solver_csparse.h>
+//#include <g2o/solvers/cholmod/linear_solver_cholmod.h>
+#include <g2o/solvers/dense/linear_solver_dense.h>
+
 #include <g2o/types/sba/types_six_dof_expmap.h>
 #include <g2o/core/robust_kernel_impl.h>
 #include <g2o/solvers/dense/linear_solver_dense.h>
@@ -37,6 +45,9 @@
 namespace ORB_SLAM2
 {
 
+
+std::list<double> listTimes = {};
+double totalTime = 0;
 
 void Optimizer::GlobalBundleAdjustment(Map* pMap, int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust)
 {
@@ -448,7 +459,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
     return nInitialCorrespondences-nBad;
 }
 
-void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap)
+void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap, string linearSolverName, string optimizationAlgorithmName)
 {
 
 	std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
@@ -506,12 +517,31 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 
     // Setup optimizer
     g2o::SparseOptimizer optimizer;
-     std::unique_ptr<g2o::BlockSolver_6_3::LinearSolverType> linearSolver = \
-      g2o::make_unique<g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>>();
+	std::unique_ptr<g2o::BlockSolver_6_3::LinearSolverType> linearSolver;
+	g2o::OptimizationAlgorithmWithHessian* solver;
 
+	if (linearSolverName == "pcg")
+    {linearSolver = g2o::make_unique<g2o::LinearSolverPCG<g2o::BlockSolver_6_3::PoseMatrixType>>();}
+    else if(linearSolverName == "eigen")
+    {linearSolver = g2o::make_unique<g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>>();}
+    else if(linearSolverName == "dense")
+    {linearSolver = g2o::make_unique<g2o::LinearSolverDense<g2o::BlockSolver_6_3::PoseMatrixType>>();}
+    //else if(linearSolverName == "csparse")
+    //{linearSolver = g2o::make_unique<g2o::LinearSolverCSparse<g2o::BlockSolver_6_3::PoseMatrixType>>();}
+    //else if(Optimizer::linearSolverName == "cholmod")
+    //{linearSolver = g2o::make_unique<g2o::LinearSolverCholmod<g2o::BlockSolver_6_3::PoseMatrixType>>();}
+    else
+    {linearSolver = g2o::make_unique<g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>>();}
 
-    g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(
-	                  g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linearSolver)));
+    if (optimizationAlgorithmName == "lm")
+    {solver = new g2o::OptimizationAlgorithmLevenberg(g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linearSolver)));}
+    else if (optimizationAlgorithmName == "dogleg")
+    {solver = new g2o::OptimizationAlgorithmDogleg(g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linearSolver)));}
+    else if (optimizationAlgorithmName == "gauss")
+    {solver = new g2o::OptimizationAlgorithmGaussNewton(g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linearSolver)));}
+    else
+    {solver = new g2o::OptimizationAlgorithmLevenberg(g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linearSolver)));}
+
     optimizer.setAlgorithm(solver);
 
     if(pbStopFlag)
@@ -776,14 +806,38 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
         pMP->UpdateNormalAndDepth();
     }
 
+
+
     // end of local BA
 	std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
 	double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
-	std::cout << "LBA took " << ttrack << std::endl;
 
+	listTimes.push_back(ttrack);
+    totalTime += ttrack;
+
+    std::cout << "LBA took: " << ttrack << " - lKF: " << lLocalKeyFrames.size() << " - fixed: " << lFixedCameras.size() << " - MPs: " << lLocalMapPoints.size() << std::endl;
 
 }
 
+void Optimizer::printTime() {
+
+	listTimes.sort();
+
+	std::list<double>::iterator it = listTimes.begin();
+	double min = *it;
+	std::advance(it, listTimes.size()/2);
+	double med = *it;
+	it = listTimes.end();
+	--it;
+	double max = *it;
+
+    cout << "-------" << endl << endl;
+    cout << "median localBA time: " << med << endl;
+    cout << "mean localBA time: " << totalTime/listTimes.size() << endl;
+	std::advance(it, listTimes.size());
+	cout << "min/max localBA time: " << min <<" / "<< max << endl;
+
+}
 
 void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* pCurKF,
                                        const LoopClosing::KeyFrameAndPose &NonCorrectedSim3,

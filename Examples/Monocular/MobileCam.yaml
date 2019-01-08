@@ -70,5 +70,8 @@ Viewer.ViewpointF: 500
 Map.mapfile: mapfile
 Map.loadMap: bin
 # you can either use text or binary. Text File has better portability on Hardware
-Map.saveAsBin: true
-Map.saveAsText: true
+Map.saveAsBin: false
+Map.saveAsText: false
+
+Optimizer.Algorithm: lm
+Optimizer.linearSolver: pcg

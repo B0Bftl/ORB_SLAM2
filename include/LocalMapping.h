@@ -41,7 +41,7 @@ class Map;
 class LocalMapping
 {
 public:
-    LocalMapping(Map* pMap, const float bMonocular);
+    LocalMapping(Map* pMap, const float bMonocular, string linearSolverName, string optimizationAlgorithmName);
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
 
@@ -128,6 +128,9 @@ private:
     std::list<MapPoint*> mlpRecentAddedMapPoints;
 
     std::list<std::function<void(long unsigned int)>> mlNewKFHooks;
+
+    string mLinearSolverName;
+    string mOptimizationAlgorithmName;
 
 };
 

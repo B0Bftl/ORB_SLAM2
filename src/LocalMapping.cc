@@ -30,11 +30,12 @@
 namespace ORB_SLAM2
 {
 
-LocalMapping::LocalMapping(Map *pMap, const float bMonocular):
+LocalMapping::LocalMapping(Map *pMap, const float bMonocular, string linearSolverName, string optimizationAlgorithmName):
     mpMap(pMap), mpLoopCloser(nullptr), mbMonocular(bMonocular),
     mState(LocalMappingState::RUNNING), mbIdle(false),
     mbFinishRequested(false), mNStopRequested(0),
-    mbResetRequested(false),  mbAbortBA(false), mbNotifyNewKF(false)
+    mbResetRequested(false),  mbAbortBA(false), mbNotifyNewKF(false),
+    mLinearSolverName(linearSolverName), mOptimizationAlgorithmName(optimizationAlgorithmName)
 {
 }
 
@@ -45,6 +46,7 @@ void LocalMapping::SetLoopCloser(LoopClosing* pLoopCloser)
 
 void LocalMapping::Run()
 {
+
     while(GetNewKeyFrame()) //Blocking, FALSE => state FINISHED
     {
         // BoW conversion and insertion in Map
@@ -72,7 +74,7 @@ void LocalMapping::Run()
         {
             // Local BA
             if(mpMap->KeyFramesInMap()>2)
-                Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame, &mbAbortBA, mpMap);
+                Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame, &mbAbortBA, mpMap, mLinearSolverName, mOptimizationAlgorithmName);
 
             // Check redundant local Keyframes
             KeyFrameCulling();

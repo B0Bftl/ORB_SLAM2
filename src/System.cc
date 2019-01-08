@@ -22,6 +22,7 @@
 
 #include "System.h"
 #include "Converter.h"
+#include "Optimizer.h"
 #include <thread>
 #include <pangolin/pangolin.h>
 #include <iomanip>
@@ -137,9 +138,13 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpTracker = new Tracking(this, mpVocabulary, mpMap, mpKeyFrameDatabase,
                              strSettingsFile, mSensor, bReuseMap);
 
+
+	string optimizationAlgorithmName = (string) fsSettings["Optimizer.Algorithm"];
+	string linearSolverName = (string) fsSettings["Optimizer.linearSolver"];
+
     //Initialize the Local Mapping thread and launch
-    mpLocalMapper = new LocalMapping(mpMap, mSensor==MONOCULAR);
-    mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run,mpLocalMapper);
+    mpLocalMapper = new LocalMapping(mpMap, mSensor==MONOCULAR, linearSolverName, optimizationAlgorithmName);
+    mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run, mpLocalMapper);
 
     //Initialize the Loop Closing thread and launch
     mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDatabase, mpVocabulary, mSensor!=MONOCULAR);
@@ -383,7 +388,9 @@ void System::Shutdown()
     if(mpViewer)
         pangolin::BindToContext("ORB-SLAM2: Map Viewer");
 
-    // Save map as bin/text
+	Optimizer::printTime();
+
+	// Save map as bin/text
     if (save_map_bin)
         SaveMapBin(mapfile);
 
