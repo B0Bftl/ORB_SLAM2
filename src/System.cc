@@ -272,6 +272,7 @@ void System::UpdateTrackingState(const cv::Mat& Tcw)
         mpFrameDrawer->Update(mpTracker);
         mpMapDrawer->SetCurrentCameraPose(Tcw);
     }
+    if (mTrackingState == Tracking::LOST) cout << "Track Lost!" << endl;
 }
 
 void System::ActivateLocalizationMode()

@@ -520,6 +520,9 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 	std::unique_ptr<g2o::BlockSolver_6_3::LinearSolverType> linearSolver;
 	g2o::OptimizationAlgorithmWithHessian* solver;
 
+	string usedSolver = linearSolverName;
+	string usedAlgorithm = optimizationAlgorithmName;
+
 	if (linearSolverName == "pcg")
     {linearSolver = g2o::make_unique<g2o::LinearSolverPCG<g2o::BlockSolver_6_3::PoseMatrixType>>();}
     else if(linearSolverName == "eigen")
@@ -531,7 +534,11 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     //else if(Optimizer::linearSolverName == "cholmod")
     //{linearSolver = g2o::make_unique<g2o::LinearSolverCholmod<g2o::BlockSolver_6_3::PoseMatrixType>>();}
     else
-    {linearSolver = g2o::make_unique<g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>>();}
+    {
+    	linearSolver = g2o::make_unique<g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>>();
+	    usedSolver = "def: eigen";
+
+    }
 
     if (optimizationAlgorithmName == "lm")
     {solver = new g2o::OptimizationAlgorithmLevenberg(g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linearSolver)));}
@@ -540,7 +547,10 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
     else if (optimizationAlgorithmName == "gauss")
     {solver = new g2o::OptimizationAlgorithmGaussNewton(g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linearSolver)));}
     else
-    {solver = new g2o::OptimizationAlgorithmLevenberg(g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linearSolver)));}
+    {
+    	solver = new g2o::OptimizationAlgorithmLevenberg(g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linearSolver)));
+        usedAlgorithm = "def: lm";
+    }
 
     optimizer.setAlgorithm(solver);
 
@@ -815,7 +825,9 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 	listTimes.push_back(ttrack);
     totalTime += ttrack;
 
-    std::cout << "LBA took: " << ttrack << " - lKF: " << lLocalKeyFrames.size() << " - fixed: " << lFixedCameras.size() << " - MPs: " << lLocalMapPoints.size() << std::endl;
+    std::cout << usedAlgorithm << " ; " << usedSolver <<" - LBA took: " << ttrack
+              << " - lKF: " << lLocalKeyFrames.size() << " - fixed: " << lFixedCameras.size()
+              << " - MPs: " << lLocalMapPoints.size() << std::endl;
 
 }
 
