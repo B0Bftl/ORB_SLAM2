@@ -4,7 +4,7 @@ cd Thirdparty/DBoW2
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=$BUILDTYPE
-make -j
+make -j4
 
 cd ../../../
 
@@ -19,7 +19,7 @@ echo "Configuring and building ORB_SLAM2 ..."
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=$BUILDTYPE
-make -j
+make -j4
 cd ..
 
 echo "Converting vocabulary to binary"
