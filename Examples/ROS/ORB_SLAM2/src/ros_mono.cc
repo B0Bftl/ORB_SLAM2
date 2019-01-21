@@ -25,6 +25,7 @@
 #include<chrono>
 
 #include<ros/ros.h>
+#include <std_msgs/Int8.h>
 #include <cv_bridge/cv_bridge.h>
 
 #include<opencv2/core/core.hpp>
@@ -62,9 +63,27 @@ int main(int argc, char **argv)
 
     ros::NodeHandle nodeHandler;
     ros::Subscriber sub = nodeHandler.subscribe("/camera/image_raw", 1, &ImageGrabber::GrabImage,&igb);
+    ros::Publisher pub = nodeHandler.advertise<std_msgs::Int8>("/orb_slam2/tracking_state",1,false);
 
-    ros::spin();
+    ros::Rate loop_rate(30);
+    std_msgs::Int8 msgState;
 
+    int oldState = -2;
+    int newState;
+    while(ros::ok())
+    {
+        // only publish if state changed
+	    newState = SLAM.GetTrackingState();
+        if(newState != oldState)
+        {
+	        std_msgs::Int8 msgState;
+	        msgState.data = newState;
+	        pub.publish(msgState);
+            oldState = newState;
+        }
+        ros::spinOnce();
+	    loop_rate.sleep();
+    }
     // Stop all threads
     SLAM.Shutdown();
 
